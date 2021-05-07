@@ -141,6 +141,7 @@ module Pod
           return true if resolved_spec_names(pod) != sandbox_spec_names(pod)
           return true if sandbox.predownloaded?(pod)
           return true if folder_empty?(pod)
+          return true if check_use_source_change(pod)
           false
         end
 
@@ -211,6 +212,15 @@ module Pod
         #
         def sandbox_version(pod)
           sandbox_manifest.version(pod)
+        end
+        
+        def check_use_source_change(pod)
+          spec = root_spec(pod)
+          $source = ENV['use_source']
+          if $source=='1' || $source=='0' || ENV["#{spec.name}_use_source"]=='1' || ENV["#{spec.name}_use_source"]=='0'
+            return true
+          end
+          return false
         end
 
         # @return [String] The checksum of the specification of the Pod with
