@@ -217,28 +217,38 @@ module Pod
         def check_use_source_change(pod)
           $ignore = ENV['ignore_framework']
           $source = ENV['use_source']
+          $global_source = ENV['global_use_source']
           spec = root_spec(pod)
+          use_source = true
 
-          if $ignore=='1'
+          if $ignore=='1' || ENV["#{spec.name}_ignore_framework"]=='1'
             return false
           end
 
-          if $source=='0'
-            `arch -x86_64 pod cache clean --all`
-            puts("🦊 清除全部缓存")
-          elsif $source=='1'
-            `arch -x86_64 pod cache clean --all`
-            puts("🦊 清除全部缓存")
-          else
-            if ENV["#{spec.name}_use_source"]=='1' || ENV["#{spec.name}_use_source"]=='0'
-              `arch -x86_64 pod cache clean #{spec.name}`
-              puts("🦊 清除缓存: #{spec.name}")
-            end
+          podPath = sandbox.pod_dir(pod)
+          # puts("🐼1")
+          # puts(podPath.class)
+          useFrameworkFilePath = podPath + "#{spec.name}/#{spec.version}/use_framework.txt"
+          localPodUseFramework = File.file?(useFrameworkFilePath)
+          # puts("🐼2")
+          # puts(useFrameworkFilePath)
+          # puts("🐼3")
+          # puts(localPodUseFramework)
+          
+
+          if $global_source == '1' || $source == '1' || ENV["#{spec.name}_use_source"]=='1'
+            use_source = true
+          elsif $global_source == '0' || $source == '0' || ENV["#{spec.name}_use_source"]=='0'
+            use_source = false
           end
 
-          if $source=='1' || $source=='0' || ENV["#{spec.name}_use_source"]=='1' || ENV["#{spec.name}_use_source"]=='0'
+          if (use_source && localPodUseFramework) || (!use_source && !localPodUseFramework)
+            # 当前用源码，但是目前用的是framework，清空缓存
+            system "arch -x86_64 pod cache clean #{spec.name} --all"
+            # puts("🐼4 clean #{spec.name} and return true")
             return true
           end
+          # puts("🐼4 nothing and return false")
           return false
         end
 
