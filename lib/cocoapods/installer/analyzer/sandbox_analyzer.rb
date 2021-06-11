@@ -215,41 +215,54 @@ module Pod
         end
         
         def check_use_source_change(pod)
-          $ignore = ENV['ignore_framework']
-          $source = ENV['use_source']
-          $global_source = ENV['global_use_source']
+          $use_source = ENV['use_source']
           spec = root_spec(pod)
           use_source = true
 
-          if $ignore=='1' || ENV["#{spec.name}_ignore_framework"]=='1'
-            return false
-          end
-
           podPath = sandbox.pod_dir(pod)
-          # puts("🐼1")
-          # puts(podPath.class)
           useFrameworkFilePath = podPath + "#{spec.name}/#{spec.version}/use_framework.txt"
           localPodUseFramework = File.file?(useFrameworkFilePath)
-          # puts("🐼2")
-          # puts(useFrameworkFilePath)
-          # puts("🐼3")
-          # puts(localPodUseFramework)
-          
 
-          if $global_source == '1' || $source == '1' || ENV["#{spec.name}_use_source"]=='1'
+          # 强制忽略
+          if ENV["#{spec.name}_ignore_use_source"] == '1'
+            puts("🈲️ #{spec.name} 强制忽略处理")
+            return false
+          end
+          
+          if $use_source == '1'
             use_source = true
-          elsif $global_source == '0' || $source == '0' || ENV["#{spec.name}_use_source"]=='0'
+          elsif $use_source == '0'
             use_source = false
           end
 
+          if ENV["#{spec.name}_use_source"]=='1'
+            use_source = true
+          elsif ENV["#{spec.name}_use_source"]=='0'
+            use_source = false
+          end
+
+          # 非gitlab项目，自动忽略
+          if "#{spec.source}".include?('gitlab') == false && ENV["#{spec.name}_use_source"] == nil && !localPodUseFramework
+            puts("🐙 #{spec.name} GitHub项目(忽略处理)")
+            return false
+          end
+
+          result = false
+
           if (use_source && localPodUseFramework) || (!use_source && !localPodUseFramework)
             # 当前用源码，但是目前用的是framework，清空缓存
+            puts("✅ #{spec.name} 清除缓存")
             system "arch -x86_64 pod cache clean #{spec.name} --all"
-            # puts("🐼4 clean #{spec.name} and return true")
-            return true
+            result = true
           end
-          # puts("🐼4 nothing and return false")
-          return false
+
+          if use_source == true
+            puts("📃 #{spec.name} 使用源代码" + " #{spec.source}")
+          else
+            puts("📦 #{spec.name} 使用Framework")
+          end
+
+          return result
         end
 
         # @return [String] The checksum of the specification of the Pod with
