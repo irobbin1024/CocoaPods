@@ -257,7 +257,7 @@ module Pod
           end
 
           if use_source == true
-            puts("📃 #{spec.name} 使用源代码" + " #{spec.source}")
+            puts("📃 #{spec.name} 使用源代码")
           else
             puts("📦 #{spec.name} 使用Framework")
           end
